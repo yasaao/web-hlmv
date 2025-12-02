@@ -142,8 +142,10 @@ export const TextureEditor = ({ modelData, modelBuffer, onBufferUpdate, onClose 
             const textureInfo = modelData.textures[textureIndex]
             const newBuffer = await replaceTextureInMDL(modelBuffer, textureInfo, file)
             onBufferUpdate(newBuffer)
-        } catch (e: any) {
-            alert(e.message);
+        } catch (e) {
+            // Non-typed catch to satisfy TS1196
+            const msg = (e && (e as any).message) ? (e as any).message : String(e)
+            alert(msg)
         } finally {
             setProcessing(false)
         }

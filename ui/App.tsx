@@ -108,7 +108,7 @@ export const App = hot(module)(() => {
   const [activeTab, setActiveTab] = React.useState<'none' | 'editor' | 'anim'>('none')
 
   return (
-    <FileContainer defaultFileUrl={null}>
+    <FileContainer defaultFileUrl={undefined}>
       {({ buffer, isLoading }, { setFile, setFileUrl }) => {
         
         React.useEffect(() => {
