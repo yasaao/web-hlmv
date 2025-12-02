@@ -2,6 +2,7 @@ import * as leetModel          from '../__mock__/leet.mdl'
 import * as React              from 'react'
 import { hot }                 from 'react-hot-loader'
 import DropzoneContainer       from 'react-dropzone'
+import styled                  from 'styled-components'
 import { ModelController }     from '../lib/modelController'
 import { ModelData }           from '../lib/modelDataParser'
 import { LoadingScreen }       from './LoadingScreen'
@@ -11,76 +12,212 @@ import { GlobalStyles }        from './GlobalStyles'
 import { Dropzone }            from './Dropzone'
 import { BackgroundContainer } from './BackgroundContainer'
 import { FileContainer }       from './FileContainer'
-import { GithubButton }        from './GithubButton'
 import { StartScreen }         from './StartScreen'
+import { TextureEditor }       from './TextureEditor'
+import { IconSkin, IconAnim, IconFolder, IconUpload } from './Icons'
 
-/** Is need to show demo */
+const FloatingNav = styled.div`
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 20, 0.9);
+  backdrop-filter: blur(15px);
+  border: 1px solid #333;
+  border-radius: 100px;
+  display: flex;
+  padding: 6px;
+  gap: 8px;
+  z-index: 50;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+`
+
+const NavButton = styled.button<{ active?: boolean }>`
+  background: ${props => props.active ? '#333' : 'transparent'};
+  border: none;
+  color: ${props => props.active ? '#fff' : '#666'};
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 13px;
+
+  svg { stroke: ${props => props.active ? '#fff' : '#666'}; }
+  &:active { transform: scale(0.95); }
+`
+
+const FabUpload = styled.label`
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+  z-index: 40;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+`
+
+const SettingWrapper = styled.div<{ show: boolean }>`
+  display: ${props => props.show ? 'block' : 'none'};
+  & > div {
+    top: auto !important;
+    bottom: 100px !important; 
+    right: 20px !important;
+    left: 20px !important;
+    width: auto !important;
+    background: #111 !important;
+    border: 1px solid #333 !important;
+  }
+`
+
+// Container untuk nama developer di kanan atas (di layar edit)
+const DevName = styled.div`
+  position: absolute;
+  top: 25px;
+  right: 25px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  background: rgba(0,0,0,0.3);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+  z-index: 40;
+`
+
 export const App = hot(module)(() => {
   const [modelController, setModelController] = React.useState<ModelController | undefined>(undefined)
   const [modelData, setModelData] = React.useState<ModelData | undefined>(undefined)
-  const [isDemoShowed] = React.useState(location.search.indexOf('?demo') === 0)
   const [demoFileUrl] = React.useState(leetModel)
+  const [currentBuffer, setCurrentBuffer] = React.useState<ArrayBuffer | null>(null)
+  const [renderVersion, setRenderVersion] = React.useState(0)
+  const [activeTab, setActiveTab] = React.useState<'none' | 'editor' | 'anim'>('none')
 
   return (
-    <FileContainer defaultFileUrl={isDemoShowed ? demoFileUrl : null}>
-      {({ buffer, isLoading }, { setFile, setFileUrl }) => (
-        <DropzoneContainer onDrop={files => setFile(files[0])}>
-          {({ getRootProps, getInputProps, isDragActive }) => (
-            <div {...getRootProps()} onClick={undefined}>
-              <BackgroundContainer>
+    <FileContainer defaultFileUrl={null}>
+      {({ buffer, isLoading }, { setFile, setFileUrl }) => {
+        
+        React.useEffect(() => {
+            if (buffer) {
+                setCurrentBuffer(buffer)
+                setRenderVersion(v => v + 1)
+            }
+        }, [buffer])
+
+        // === TAMPILAN AWAL (Start Screen) ===
+        if (!currentBuffer && !isLoading) {
+           return (
+             <DropzoneContainer 
+                onDrop={files => setFile(files[0])} 
+                disableClick={true} // <--- INI PERBAIKANNYA (disable klik background)
+                multiple={false}
+             >
+               {({ getRootProps, getInputProps, open }) => (
+                 <div {...getRootProps()} style={{height: '100vh', position: 'relative', cursor: 'default'}}>
+                    <input {...getInputProps()} />
+                    <GlobalStyles backgroundColor="#050505" color="#fff" />
+                    
+                    {/* Kita oper fungsi 'open' ke tombol khusus di StartScreen */}
+                    <StartScreen 
+                        demoFileUrl={demoFileUrl} 
+                        selectFile={open} 
+                        setFileUrl={setFileUrl} 
+                    />
+                 </div>
+               )}
+             </DropzoneContainer>
+           )
+        }
+
+        // === TAMPILAN EDITOR (Setelah Upload) ===
+        return (
+            <BackgroundContainer>
                 {({ backgroundColor }, { setBackgroundColor }) => (
                   <React.Fragment>
-                    <GlobalStyles backgroundColor={backgroundColor} color="#fff" />
+                    <GlobalStyles backgroundColor="#080808" color="#fff" />
 
-                    <GithubButton />
+                    {/* Tombol Upload Ulang di Kiri Atas */}
+                    <FabUpload>
+                        <IconFolder />
+                        <input type="file" accept=".mdl" style={{display:'none'}} onChange={(e) => {
+                            if(e.target.files?.[0]) setFile(e.target.files[0])
+                        }}/>
+                    </FabUpload>
 
-                    <Controller
-                      isLoading={isLoading}
-                      backgroundColor={backgroundColor}
-                      modelController={modelController}
-                      modelData={modelData}
-                      onBackgroundColorUpdate={setBackgroundColor}
-                      onModelLoad={file => setFile(file)}
-                    />
+                    {/* Watermark di Kanan Atas */}
+                    <DevName>@yasaaoursea</DevName>
 
-                    {(isDragActive || (!buffer && !isLoading)) && (
-                      <Dropzone
-                        // onClick={getRootProps().onClick}
-                        backgroundColor={backgroundColor}
-                        onFileLoad={file => setFile(file)}
-                        isDragActive={isDragActive}
-                        inputProps={getInputProps()}
-                      >
-                        {isDragActive ? (
-                          'Drop model here...'
-                        ) : (
-                          <StartScreen
-                            demoFileUrl={demoFileUrl}
-                            selectFile={getRootProps().onClick}
-                            setFileUrl={setFileUrl}
-                          />
-                        )}
-                      </Dropzone>
+                    {activeTab === 'editor' && modelData && (
+                        <TextureEditor 
+                            modelData={modelData} 
+                            modelBuffer={currentBuffer}
+                            onBufferUpdate={(newBuf) => {
+                                setCurrentBuffer(newBuf)
+                                setRenderVersion(v => v + 1)
+                            }}
+                            onClose={() => setActiveTab('none')}
+                        />
                     )}
 
-                    {isLoading && <LoadingScreen>Loading...</LoadingScreen>}
+                    <SettingWrapper show={activeTab === 'anim'}>
+                        <Controller
+                            isLoading={isLoading}
+                            backgroundColor={backgroundColor}
+                            modelController={modelController}
+                            modelData={modelData}
+                            onBackgroundColorUpdate={setBackgroundColor}
+                            onModelLoad={file => setFile(file)}
+                        />
+                    </SettingWrapper>
 
-                    {buffer && !isLoading && (
-                      <React.Fragment>
+                    {isLoading && <LoadingScreen>LOADING...</LoadingScreen>}
+
+                    {currentBuffer && !isLoading && (
                         <Renderer
-                          modelBuffer={buffer}
+                          modelBuffer={currentBuffer}
                           setModelController={setModelController}
                           setModelData={setModelData}
+                          key={`renderer-${renderVersion}`} 
                         />
-                      </React.Fragment>
                     )}
+
+                    <FloatingNav>
+                        <NavButton 
+                            active={activeTab === 'editor'} 
+                            onClick={() => setActiveTab(activeTab === 'editor' ? 'none' : 'editor')}
+                        >
+                            <IconSkin />
+                            Editor
+                        </NavButton>
+
+                        <NavButton 
+                            active={activeTab === 'anim'} 
+                            onClick={() => setActiveTab(activeTab === 'anim' ? 'none' : 'anim')}
+                        >
+                            <IconAnim />
+                            Setting
+                        </NavButton>
+                    </FloatingNav>
+
                   </React.Fragment>
                 )}
               </BackgroundContainer>
-            </div>
-          )}
-        </DropzoneContainer>
-      )}
+        )
+      }}
     </FileContainer>
   )
 })
