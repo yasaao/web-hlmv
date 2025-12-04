@@ -13,7 +13,9 @@ export const resetCss = `
   
   body {
     margin: 0; padding: 0;
-    background-color: #050505;
+    /* Gunakan transisi agar perubahan warna halus */
+    transition: background-color 0.3s ease;
+    
     /* Pola Grid Halus */
     background-image: 
         linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
@@ -34,7 +36,7 @@ type Props = {
 export const GlobalStyles = createGlobalStyle<Props>`
   ${resetCss}
   body {
-    /* Override warna solid jika ada, tapi tetap pertahankan grid */
-    background-color: ${props => props.backgroundColor === '#0f0f0f' ? '#080808' : props.backgroundColor};
+    /* Terapkan warna dari props secara langsung */
+    background-color: ${props => props.backgroundColor};
   }
 `

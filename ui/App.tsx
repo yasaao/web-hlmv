@@ -15,6 +15,7 @@ import { FileContainer }       from './FileContainer'
 import { StartScreen }         from './StartScreen'
 import { TextureEditor }       from './TextureEditor'
 import { IconSkin, IconAnim, IconFolder, IconUpload } from './Icons'
+import { updateTextureFlags } from '../lib/mdlModder'
 
 const FloatingNav = styled.div`
   position: absolute;
@@ -83,7 +84,6 @@ const SettingWrapper = styled.div<{ show: boolean }>`
   }
 `
 
-// Container untuk nama developer di kanan atas (di layar edit)
 const DevName = styled.div`
   position: absolute;
   top: 25px;
@@ -107,6 +107,20 @@ export const App = hot(module)(() => {
   const [renderVersion, setRenderVersion] = React.useState(0)
   const [activeTab, setActiveTab] = React.useState<'none' | 'editor' | 'anim'>('none')
 
+  const handleFlagUpdate = (textureIndex: number, newFlags: number) => {
+    if (!currentBuffer || !modelData) return;
+
+    const updatedBuffer = updateTextureFlags(
+      currentBuffer, 
+      modelData.header.textureIndex, 
+      textureIndex, 
+      newFlags
+    );
+    
+    setCurrentBuffer(updatedBuffer);
+    modelData.textures[textureIndex].flags = newFlags;
+  }
+
   return (
     <FileContainer defaultFileUrl={undefined}>
       {({ buffer, isLoading }, { setFile, setFileUrl }) => {
@@ -118,20 +132,19 @@ export const App = hot(module)(() => {
             }
         }, [buffer])
 
-        // === TAMPILAN AWAL (Start Screen) ===
         if (!currentBuffer && !isLoading) {
            return (
              <DropzoneContainer 
                 onDrop={files => setFile(files[0])} 
-                disableClick={true} // <--- INI PERBAIKANNYA (disable klik background)
+                disableClick={true}
                 multiple={false}
              >
                {({ getRootProps, getInputProps, open }) => (
                  <div {...getRootProps()} style={{height: '100vh', position: 'relative', cursor: 'default'}}>
                     <input {...getInputProps()} />
+                    {/* Start Screen Background */}
                     <GlobalStyles backgroundColor="#050505" color="#fff" />
                     
-                    {/* Kita oper fungsi 'open' ke tombol khusus di StartScreen */}
                     <StartScreen 
                         demoFileUrl={demoFileUrl} 
                         selectFile={open} 
@@ -143,14 +156,17 @@ export const App = hot(module)(() => {
            )
         }
 
-        // === TAMPILAN EDITOR (Setelah Upload) ===
         return (
             <BackgroundContainer>
                 {({ backgroundColor }, { setBackgroundColor }) => (
                   <React.Fragment>
-                    <GlobalStyles backgroundColor="#080808" color="#fff" />
+                    {/* 
+                       PERBAIKAN DISINI:
+                       Gunakan variabel {backgroundColor} dari render prop, 
+                       JANGAN gunakan string hardcoded "#080808" 
+                    */}
+                    <GlobalStyles backgroundColor={backgroundColor} color="#fff" />
 
-                    {/* Tombol Upload Ulang di Kiri Atas */}
                     <FabUpload>
                         <IconFolder />
                         <input type="file" accept=".mdl" style={{display:'none'}} onChange={(e) => {
@@ -158,7 +174,6 @@ export const App = hot(module)(() => {
                         }}/>
                     </FabUpload>
 
-                    {/* Watermark di Kanan Atas */}
                     <DevName>@yasaaoursea</DevName>
 
                     {activeTab === 'editor' && modelData && (
@@ -181,6 +196,7 @@ export const App = hot(module)(() => {
                             modelData={modelData}
                             onBackgroundColorUpdate={setBackgroundColor}
                             onModelLoad={file => setFile(file)}
+                            onFlagUpdate={handleFlagUpdate} 
                         />
                     </SettingWrapper>
 
