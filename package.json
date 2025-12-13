@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "start": "export NODE_OPTIONS=--openssl-legacy-provider && webpack-dev-server --mode development --host 0.0.0.0",
-    "build": "export NODE_OPTIONS=--openssl-legacy-provider && webpack --mode production",
+    "start": "cross-env NODE_OPTIONS=--openssl-legacy-provider webpack-dev-server --mode development --host 0.0.0.0",
+    "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider webpack --mode production",
     "test": "jest"
   },
   "engines": {
@@ -73,6 +73,7 @@
     "ts-node": "^8.5.4",
     "typescript": "^3.7.4",
     "typescript-eslint-parser": "^20.0.0",
+    "cross-env": "^7.0.3",
     "webpack": "^4.0.0-beta.3",
     "webpack-cli": "^3.0.8",
     "webpack-dev-server": "^3.1.4"
