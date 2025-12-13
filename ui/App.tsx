@@ -15,7 +15,6 @@ import { FileContainer }       from './FileContainer'
 import { StartScreen }         from './StartScreen'
 import { TextureEditor }       from './TextureEditor'
 import { IconSkin, IconAnim, IconFolder, IconUpload } from './Icons'
-import { updateTextureFlags } from '../lib/mdlModder'
 
 const FloatingNav = styled.div`
   position: absolute;
@@ -107,20 +106,6 @@ export const App = hot(module)(() => {
   const [renderVersion, setRenderVersion] = React.useState(0)
   const [activeTab, setActiveTab] = React.useState<'none' | 'editor' | 'anim'>('none')
 
-  const handleFlagUpdate = (textureIndex: number, newFlags: number) => {
-    if (!currentBuffer || !modelData) return;
-
-    const updatedBuffer = updateTextureFlags(
-      currentBuffer, 
-      modelData.header.textureIndex, 
-      textureIndex, 
-      newFlags
-    );
-    
-    setCurrentBuffer(updatedBuffer);
-    modelData.textures[textureIndex].flags = newFlags;
-  }
-
   return (
     <FileContainer defaultFileUrl={undefined}>
       {({ buffer, isLoading }, { setFile, setFileUrl }) => {
@@ -196,7 +181,6 @@ export const App = hot(module)(() => {
                             modelData={modelData}
                             onBackgroundColorUpdate={setBackgroundColor}
                             onModelLoad={file => setFile(file)}
-                            onFlagUpdate={handleFlagUpdate} 
                         />
                     </SettingWrapper>
 
